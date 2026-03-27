@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — FocusTrack{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Sessions</div>
+    <div class="stat-value">{{ total_sessions }}</div>
+    <div class="stat-sub">all time</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Focus Time</div>
+    <div class="stat-value">{{ total_minutes }}</div>
+    <div class="stat-sub">minutes logged</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Avg Session</div>
+    <div class="stat-value">{{ avg_duration }}</div>
+    <div class="stat-sub">minutes per session</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Courses</div>
+    <div class="stat-value">{{ course_count }}</div>
+    <div class="stat-sub">active courses</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <!-- Recent Sessions -->
+  <div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+      Recent Sessions
+      <a href="{{ url_for('history') }}" style="font-size:0.8rem;font-family:'Source Sans 3',sans-serif;color:var(--gold);text-decoration:none;font-weight:500;">View all →</a>
+    </div>
+    <div>
+      {% if sessions %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th>Duration</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in sessions %}
+          <tr>
+            <td><span class="badge badge-navy">{{ session['courseName'] }}</span></td>
+            <td>{{ session['duration'] }} min</td>
+            <td style="color:var(--text-muted);font-size:0.82rem;">{{ session['startTime'][:10] }}</td>
+            <td>
+              <a href="/delete_session/{{ session['sessionid'] }}" class="btn btn-danger btn-sm"
+                 onclick="return confirm('Delete this session?')">Delete</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <svg width="40" height="40" fill="none" stroke="var(--border)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p>No sessions yet. Start your first one!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Pomodoro Timer -->
+  <div class="card">
+    <div class="card-header">Pomodoro Timer</div>
+    <div class="card-body" style="text-align:center;">
+
+      <div style="display:flex;gap:0.5rem;justify-content:center;margin-bottom:1.5rem;">
+        <button class="btn btn-primary btn-sm" onclick="setMode('focus')" id="btn-focus">Focus</button>
+        <button class="btn btn-sm" style="border:1px solid var(--border);" onclick="setMode('break')" id="btn-break">Break</button>
+      </div>
+
+      <!-- Timer ring -->
+      <div style="position:relative;width:180px;height:180px;margin:0 auto 1.5rem;">
+        <svg width="180" height="180" style="transform:rotate(-90deg)">
+          <circle cx="90" cy="90" r="80" fill="none" stroke="var(--cream-dark)" stroke-width="8"/>
+          <circle id="timer-ring" cx="90" cy="90" r="80" fill="none" stroke="var(--gold)" stroke-width="8"
+            stroke-dasharray="502" stroke-dashoffset="0" stroke-linecap="round"
+            style="transition: stroke-dashoffset 1s linear;"/>
+        </svg>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+          <div id="timer-display" style="font-family:'Playfair Display',serif;font-size:2.4rem;font-weight:700;color:var(--navy);line-height:1;">25:00</div>
+          <div id="timer-mode" style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-top:0.2rem;">Focus</div>
+        </div>
+      </div>
+
+      <!-- Custom duration -->
+      <div style="display:flex;align-items:center;gap:0.5rem;justify-content:center;margin-bottom:1.25rem;">
+        <label style="font-size:0.8rem;color:var(--text-muted);">Duration (min):</label>
+        <input type="number" id="custom-duration" value="25" min="1" max="120"
+          style="width:60px;padding:0.3rem 0.5rem;border:1px solid var(--border);border-radius:4px;font-size:0.85rem;text-align:center;"
+          onchange="applyCustomDuration()">
+      </div>
+
+      <div style="display:flex;gap:0.75rem;justify-content:center;">
+        <button class="btn btn-gold" onclick="startTimer()" id="btn-start">Start</button>
+        <button class="btn" style="border:1px solid var(--border);" onclick="pauseTimer()" id="btn-pause" disabled>Pause</button>
+        <button class="btn" style="border:1px solid var(--border);" onclick="resetTimer()">Reset</button>
+      </div>
+
+      <div id="timer-done" style="display:none;margin-top:1rem;padding:0.6rem;background:rgba(201,168,76,0.1);border-radius:4px;font-size:0.88rem;color:#8a6d1a;font-weight:500;">
+        ✓ Session complete! Log it below.
+      </div>
+
+      <div id="log-form" style="display:none;margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
+        <form method="POST" action="/add_session">
+          <input type="hidden" name="duration" id="log-duration">
+          <div class="form-group">
+            <label class="form-label">Course</label>
+            <select name="course" class="form-control">
+              {% for course in courses %}
+              <option value="{{ course['courseid'] }}">{{ course['courseName'] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">Log Session</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_head %}
+<script>
+  let interval = null;
+  let totalSeconds = 25 * 60;
+  let remainingSeconds = totalSeconds;
+  let running = false;
+  let mode = 'focus';
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById('timer-mode').textContent = m === 'focus' ? 'Focus' : 'Break';
+    document.getElementById('btn-focus').className = m === 'focus' ? 'btn btn-primary btn-sm' : 'btn btn-sm';
+    document.getElementById('btn-focus').style.border = m === 'focus' ? '' : '1px solid var(--border)';
+    document.getElementById('btn-break').className = m === 'break' ? 'btn btn-primary btn-sm' : 'btn btn-sm';
+    document.getElementById('btn-break').style.border = m === 'break' ? '' : '1px solid var(--border)';
+    const mins = m === 'break' ? 5 : parseInt(document.getElementById('custom-duration').value) || 25;
+    document.getElementById('custom-duration').value = mins;
+    totalSeconds = mins * 60;
+    remainingSeconds = totalSeconds;
+    updateDisplay();
+    updateRing();
+  }
+
+  function applyCustomDuration() {
+    const mins = parseInt(document.getElementById('custom-duration').value) || 25;
+    totalSeconds = mins * 60;
+    remainingSeconds = totalSeconds;
+    updateDisplay();
+    updateRing();
+  }
+
+  function updateDisplay() {
+    const m = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
+    const s = (remainingSeconds % 60).toString().padStart(2, '0');
+    document.getElementById('timer-display').textContent = m + ':' + s;
+  }
+
+  function updateRing() {
+    const circumference = 502;
+    const offset = circumference * (1 - remainingSeconds / totalSeconds);
+    document.getElementById('timer-ring').style.strokeDashoffset = offset;
+  }
+
+  function startTimer() {
+    if (running) return;
+    running = true;
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-pause').disabled = false;
+    document.getElementById('timer-done').style.display = 'none';
+    document.getElementById('log-form').style.display = 'none';
+
+    interval = setInterval(() => {
+      if (remainingSeconds <= 0) {
+        clearInterval(interval);
+        running = false;
+        document.getElementById('timer-done').style.display = 'block';
+        document.getElementById('log-form').style.display = 'block';
+        const mins = Math.round(totalSeconds / 60);
+        document.getElementById('log-duration').value = mins;
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('btn-pause').disabled = true;
+        return;
+      }
+      remainingSeconds--;
+      updateDisplay();
+      updateRing();
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    clearInterval(interval);
+    running = false;
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-pause').disabled = true;
+  }
+
+  function resetTimer() {
+    clearInterval(interval);
+    running = false;
+    remainingSeconds = totalSeconds;
+    updateDisplay();
+    updateRing();
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-pause').disabled = true;
+    document.getElementById('timer-done').style.display = 'none';
+    document.getElementById('log-form').style.display = 'none';
+  }
+</script>
+{% endblock %}

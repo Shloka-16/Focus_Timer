@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Edit Session — FocusTrack{% endblock %}
+{% block page_title %}Edit Session{% endblock %}
+
+{% block content %}
+<div style="max-width:480px;">
+  <div class="card">
+    <div class="card-header">Edit Focus Session #{{ session['sessionid'] }}</div>
+    <div class="card-body">
+      <form method="POST">
+
+        <div class="form-group">
+          <label class="form-label">Course</label>
+          <select name="course" class="form-control">
+            {% for course in courses %}
+            <option value="{{ course['courseid'] }}"
+              {% if course['courseid'] == session['courseid'] %}selected{% endif %}>
+              {{ course['courseName'] }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Duration (minutes)</label>
+          <input type="number" name="duration" class="form-control"
+                 value="{{ session['duration'] }}" min="1" max="300" required>
+        </div>
+
+        <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+          <button type="submit" class="btn btn-gold">Save Changes</button>
+          <a href="{{ url_for('history') }}" class="btn" style="border:1px solid var(--border);">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

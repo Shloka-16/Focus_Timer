@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Session History — FocusTrack{% endblock %}
+{% block page_title %}Session History{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+    All Sessions
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <span style="font-size:0.8rem;font-family:'Source Sans 3',sans-serif;color:var(--text-muted);font-weight:400;">{{ sessions|length }} total</span>
+      <a href="{{ url_for('report') }}" class="btn btn-gold btn-sm">View Report</a>
+    </div>
+  </div>
+  <div>
+    {% if sessions %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Course</th>
+          <th>Duration</th>
+          <th>Date &amp; Time</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for session in sessions %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:0.82rem;">{{ session['sessionid'] }}</td>
+          <td><span class="badge badge-navy">{{ session['courseName'] }}</span></td>
+          <td>
+            <span class="badge badge-gold">{{ session['duration'] }} min</span>
+          </td>
+          <td style="color:var(--text-muted);font-size:0.82rem;">{{ session['startTime'] }}</td>
+          <td style="display:flex;gap:0.4rem;">
+            <a href="/edit_session/{{ session['sessionid'] }}" class="btn btn-sm" style="border:1px solid var(--border);">Edit</a>
+            <a href="/delete_session/{{ session['sessionid'] }}" class="btn btn-danger btn-sm"
+               onclick="return confirm('Delete this session?')">Delete</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <svg width="40" height="40" fill="none" stroke="var(--border)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      <p>No sessions logged yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

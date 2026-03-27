@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Report — FocusTrack{% endblock %}
+{% block page_title %}Session Report{% endblock %}
+
+{% block content %}
+
+<!-- Filter form -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header">Filter Sessions</div>
+  <div class="card-body">
+    <form method="GET" style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;">
+
+      <div class="form-group" style="margin:0;flex:1;min-width:160px;">
+        <label class="form-label">Course</label>
+        <select name="course" class="form-control">
+          <option value="">All Courses</option>
+          {% for course in courses %}
+          <option value="{{ course['courseid'] }}"
+            {% if selected_course == course['courseid']|string %}selected{% endif %}>
+            {{ course['courseName'] }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin:0;flex:1;min-width:120px;">
+        <label class="form-label">Min Duration (min)</label>
+        <input type="number" name="min" class="form-control"
+               placeholder="e.g. 10" value="{{ min_duration or '' }}" min="1">
+      </div>
+
+      <div class="form-group" style="margin:0;flex:1;min-width:120px;">
+        <label class="form-label">Max Duration (min)</label>
+        <input type="number" name="max" class="form-control"
+               placeholder="e.g. 60" value="{{ max_duration or '' }}" min="1">
+      </div>
+
+      <div style="display:flex;gap:0.5rem;">
+        <button type="submit" class="btn btn-gold">Apply Filters</button>
+        <a href="{{ url_for('report') }}" class="btn" style="border:1px solid var(--border);">Clear</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div class="stats-grid" style="margin-bottom:1.5rem;">
+  <div class="stat-card">
+    <div class="stat-label">Matching Sessions</div>
+    <div class="stat-value">{{ sessions|length }}</div>
+    <div class="stat-sub">results</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Focus Time</div>
+    <div class="stat-value">{{ total_mins }}</div>
+    <div class="stat-sub">minutes</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Avg Duration</div>
+    <div class="stat-value">{{ avg_dur }}</div>
+    <div class="stat-sub">minutes per session</div>
+  </div>
+</div>
+
+<!-- Results table -->
+<div class="card">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+    Results
+    <span style="font-size:0.8rem;font-family:'Source Sans 3',sans-serif;color:var(--text-muted);font-weight:400;">
+      {{ sessions|length }} session{{ 's' if sessions|length != 1 else '' }}
+    </span>
+  </div>
+  <div>
+    {% if sessions %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Course</th>
+          <th>Duration</th>
+          <th>Date &amp; Time</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:0.82rem;">{{ s['sessionid'] }}</td>
+          <td><span class="badge badge-navy">{{ s['courseName'] }}</span></td>
+          <td><span class="badge badge-gold">{{ s['duration'] }} min</span></td>
+          <td style="color:var(--text-muted);font-size:0.82rem;">{{ s['startTime'] }}</td>
+          <td style="display:flex;gap:0.4rem;">
+            <a href="/edit_session/{{ s['sessionid'] }}" class="btn btn-sm" style="border:1px solid var(--border);">Edit</a>
+            <a href="/delete_session/{{ s['sessionid'] }}" class="btn btn-danger btn-sm"
+               onclick="return confirm('Delete this session?')">Delete</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <svg width="40" height="40" fill="none" stroke="var(--border)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <p>No sessions match your filters.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
