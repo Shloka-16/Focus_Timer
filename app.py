@@ -1,12 +1,38 @@
 import sqlite3
+import os
 from flask import Flask, render_template, request, redirect, flash, url_for, session
 from werkzeug.exceptions import abort
+
+DB_PATH = '/tmp/database.db'
+
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
+
+def init_db():
+    if not os.path.exists(DB_PATH):
+        conn = sqlite3.connect(DB_PATH)
+        with open('schema.sql') as f:
+            conn.executescript(f.read())
+        cur = conn.cursor()
+        cur.execute("INSERT INTO users (username, passw) VALUES (?, ?)", ("Shloka", "123"))
+        cur.execute("INSERT INTO courses (userid, courseName) VALUES (?, ?)", (1, "CS 1"))
+        cur.execute("INSERT INTO courses (userid, courseName) VALUES (?, ?)", (1, "CS 2"))
+        cur.execute("INSERT INTO courses (userid, courseName) VALUES (?, ?)", (1, "CS 348"))
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_courseid ON focusSessions(courseid)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_duration ON focusSessions(duration)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_starttime ON focusSessions(startTime)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+        conn.commit()
+        conn.close()
+
+init_db()
+
+
+
 def get_db_connection():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
